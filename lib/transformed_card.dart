@@ -43,7 +43,11 @@ class _TransformedCardState extends State<TransformedCard> {
             height: 60.0,
             width: 40.0,
             decoration: BoxDecoration(
-              color: Colors.blue,
+              image: DecorationImage(
+                  image: AssetImage('images/back_side_owl.jpg'),
+                fit: BoxFit.scaleDown,
+                repeat: ImageRepeat.repeat
+              ),
               border: Border.all(color: Colors.black),
               borderRadius: BorderRadius.circular(8.0),
             ),
@@ -55,7 +59,7 @@ class _TransformedCardState extends State<TransformedCard> {
               columnIndex: 1,
               onCardsAdded: (card, position) {},
             ),
-            childWhenDragging: _buildFaceUpCard(),
+            childWhenDragging: Container(height: 60, width: 40,),
             data: {
               "cards": widget.attachedCards,
               "fromIndex": widget.columnIndex,
@@ -125,8 +129,8 @@ class _TransformedCardState extends State<TransformedCard> {
 
   String _cardTypeToString() {
     switch (widget.playingCard.cardType) {
-      case CardType.one:
-        return "1";
+      case CardType.ace:
+        return "A";
       case CardType.two:
         return "2";
       case CardType.three:

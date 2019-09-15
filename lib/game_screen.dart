@@ -196,7 +196,7 @@ class _GameScreenState extends State<GameScreen> {
           InkWell(
             child: cardDeckClosed.isNotEmpty
                 ? Padding(
-                    padding: const EdgeInsets.all(4.0),
+                    padding: const EdgeInsets.all(0.0),
                     child: TransformedCard(
                       playingCard: cardDeckClosed.last,
                     ),
@@ -204,7 +204,7 @@ class _GameScreenState extends State<GameScreen> {
                 : Opacity(
                     opacity: 0.4,
                     child: Padding(
-                      padding: const EdgeInsets.all(4.0),
+                      padding: const EdgeInsets.all(0.0),
                       child: TransformedCard(
                         playingCard: PlayingCard(
                           cardSuit: CardSuit.diamonds,
@@ -218,7 +218,6 @@ class _GameScreenState extends State<GameScreen> {
                 if (cardDeckClosed.isEmpty) {
                   cardDeckClosed.addAll(cardDeckOpened.map((card) {
                     return card
-                      ..opened = false
                       ..faceUp = false;
                   }));
                   cardDeckOpened.clear();
@@ -226,7 +225,6 @@ class _GameScreenState extends State<GameScreen> {
                   cardDeckOpened.add(
                     cardDeckClosed.removeLast()
                       ..faceUp = true
-                      ..opened = true,
                   );
                 }
               });
@@ -234,7 +232,7 @@ class _GameScreenState extends State<GameScreen> {
           ),
           cardDeckOpened.isNotEmpty
               ? Padding(
-                  padding: const EdgeInsets.all(4.0),
+                  padding: const EdgeInsets.all(0.0),
                   child: TransformedCard(
                     playingCard: cardDeckOpened.last,
                     attachedCards: [
@@ -349,7 +347,7 @@ class _GameScreenState extends State<GameScreen> {
         allCards.add(PlayingCard(
           cardType: type,
           cardSuit: suit,
-          faceUp: false,
+          faceUp: true,
         ));
       });
     });
@@ -364,7 +362,6 @@ class _GameScreenState extends State<GameScreen> {
         PlayingCard card = allCards[randomNumber];
         cardColumn1.add(
           card
-            ..opened = true
             ..faceUp = true,
         );
         allCards.removeAt(randomNumber);
@@ -373,7 +370,6 @@ class _GameScreenState extends State<GameScreen> {
           PlayingCard card = allCards[randomNumber];
           cardColumn2.add(
             card
-              ..opened = true
               ..faceUp = true,
           );
         } else {
@@ -385,7 +381,6 @@ class _GameScreenState extends State<GameScreen> {
           PlayingCard card = allCards[randomNumber];
           cardColumn3.add(
             card
-              ..opened = true
               ..faceUp = true,
           );
         } else {
@@ -397,7 +392,6 @@ class _GameScreenState extends State<GameScreen> {
           PlayingCard card = allCards[randomNumber];
           cardColumn4.add(
             card
-              ..opened = true
               ..faceUp = true,
           );
         } else {
@@ -409,7 +403,6 @@ class _GameScreenState extends State<GameScreen> {
           PlayingCard card = allCards[randomNumber];
           cardColumn5.add(
             card
-              ..opened = true
               ..faceUp = true,
           );
         } else {
@@ -421,7 +414,6 @@ class _GameScreenState extends State<GameScreen> {
           PlayingCard card = allCards[randomNumber];
           cardColumn6.add(
             card
-              ..opened = true
               ..faceUp = true,
           );
         } else {
@@ -433,7 +425,6 @@ class _GameScreenState extends State<GameScreen> {
           PlayingCard card = allCards[randomNumber];
           cardColumn7.add(
             card
-              ..opened = true
               ..faceUp = true,
           );
         } else {
@@ -446,7 +437,6 @@ class _GameScreenState extends State<GameScreen> {
     cardDeckClosed = allCards;
     cardDeckOpened.add(
       cardDeckClosed.removeLast()
-        ..opened = true
         ..faceUp = true,
     );
 
@@ -464,7 +454,6 @@ class _GameScreenState extends State<GameScreen> {
     setState(() {
       if (_getListFromIndex(index).length != 0) {
         _getListFromIndex(index)[_getListFromIndex(index).length - 1]
-          ..opened = true
           ..faceUp = true;
       }
     });

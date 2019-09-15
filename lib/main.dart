@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:solitaire_flutter/game_screen.dart';
+import 'package:solitaire_flutter/game_screen_gridcannon.dart';
 
 void main() => runApp(MyApp());
 
@@ -21,7 +22,7 @@ class MyApp extends StatelessWidget {
         // is not restarted.
         primarySwatch: Colors.blue,
       ),
-      home: GameScreen(),
+      home: GameScreenGC(),
     );
   }
 }

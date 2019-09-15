@@ -10,7 +10,7 @@ description: A solitaire clone made in Flutter.
 version: 1.0.0+1
 
 environment:
-  sdk: ">=2.1.0 <3.0.0"
+  sdk: ">=2.2.0 <3.0.0"
 
 dependencies:
   flutter:
@@ -42,6 +42,7 @@ flutter:
     - images/clubs.png
     - images/spades.png
     - images/back_side.png
+    - images/back_side_owl.jpg
 
   # To add assets to your application, add an assets section, like this:
   # assets:
