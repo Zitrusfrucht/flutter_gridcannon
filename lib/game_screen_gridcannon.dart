@@ -63,7 +63,7 @@ class _GameScreenStateGC extends State<GameScreenGC> {
     _initialiseGame();
   }
 
-  bool isLastCard(CardStack card) =>  card.length == 1 && goneCards.isEmpty;
+  bool isLastCard(CardStack card) => card.length == 1 && goneCards.isEmpty;
 
   void _initialiseGame() {
     rng = Random();
@@ -74,7 +74,7 @@ class _GameScreenStateGC extends State<GameScreenGC> {
 
     shameCards = CardStack(
         willAccept: (CardStack source) =>
-            source.last.value < CardType.jack.index &&!(isLastCard(source)),
+            source.last.value < CardType.jack.index && !(isLastCard(source)),
         onAccept: (CardStack source) {
           setState(() {
             shameCards.add(source.last);
@@ -88,19 +88,17 @@ class _GameScreenStateGC extends State<GameScreenGC> {
         draggable: false);
 
     playerGrid = Grid(gridWidth, gridHeight, (int i) {
-      var currStack = playerGrid.values[i];
       return CardStack(
           draggable: false,
           willAccept: (CardStack source) {
-            if (currStack.isEmpty) {
+            int srcVal = source.last.value;
+            if (srcVal >= CardType.jack.index) {
+              return false;
+            } else if (isLastCard(source)) {
               return true;
-            } else // last card
-            if (isLastCard(source)) {
-              return source.last.value < CardType.jack.index;
             } else {
-              int srcVal = source.last.value;
-              return srcVal >= currStack.last.value &&
-                      srcVal < CardType.jack.index ||
+              return playerGrid.values[i].isEmpty ||
+                  srcVal >= playerGrid.values[i].last.value ||
                   srcVal == CardType.ace.index ||
                   srcVal == CardType.joker.index;
             }
@@ -111,21 +109,21 @@ class _GameScreenStateGC extends State<GameScreenGC> {
 
               if (cardVal == CardType.ace.index ||
                   cardVal == CardType.joker.index) {
-                currStack.forEach((c) => c.faceUp = false);
-                goneCards.addAll(currStack);
-                currStack.clear();
+                playerGrid.values[i].forEach((c) => c.faceUp = false);
+                goneCards.addAll(playerGrid.values[i]);
+                playerGrid.values[i].clear();
               }
 
-              currStack.add(source.last);
+              playerGrid.values[i].add(source.last);
               hitCheck(i);
 
               // last card
               if (isLastCard(source)) {
-                var last = currStack.removeLast();
+                var last = playerGrid.values[i].removeLast();
                 shameCards.add(last);
-                currStack.shuffle(rng);
-                handCards.addAll(currStack);
-                currStack.clear();
+                playerGrid.values[i].shuffle(rng);
+                handCards.addAll(playerGrid.values[i]);
+                playerGrid.values[i].clear();
               }
             });
           },
@@ -189,7 +187,6 @@ class _GameScreenStateGC extends State<GameScreenGC> {
             if (handCards.isEmpty) {
               if (goneCards.isEmpty) {
                 print("Game over");
-                //TODO add option to reset one stack and put topcard to shamepile
               } else {
                 goneCards.forEach((c) => (c.faceUp = true));
                 goneCards.shuffle(rng);
