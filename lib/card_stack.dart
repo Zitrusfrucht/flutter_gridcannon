@@ -5,37 +5,44 @@ import 'package:solitaire_flutter/playing_card.dart';
 class CardStack extends ListBase<PlayingCard> {
   List<PlayingCard> cards = [];
 
+  bool draggable;
+
+
+  CardStack({this.willAccept, this.onAccept, this.onDragCompleted, this.draggable= true});
+  bool Function(CardStack) willAccept;
+  void Function(CardStack) onAccept;
+  void Function() onDragCompleted;
+
+  int get totalValue{
+    int total = 0;
+    cards.forEach((c){
+      total = total + c.cardType.index;
+    });
+    return total;
+  }
+
   Widget getWidget(void Function(VoidCallback) setState) => Center(
-    child: DragTarget<PlayingCard>(
-        builder: (a, b, c) {
-          if ((cards.isEmpty)) {
-            return _emptyStack;
-          } else {
-            return Draggable(
-              child: cards.last.widget,
-              maxSimultaneousDrags: 1,
-              feedback: cards.last.widget,
-              childWhenDragging: cards.length > 1
-                  ? cards[cards.length - 2].widget
-                  : _emptyStack,
-              data: this.last,
-              onDragCompleted: () => {
-                this.removeLast()
-              },
-            );
-          }
-        },
-        onWillAccept: (PlayingCard card) {
-          return this.isEmpty || this.last.faceUp ==  card.faceUp;
-          return card.cardColor != this.last.cardColor;
-        },
-        onAccept: (PlayingCard card) {
-          setState(() {
-            cards.add(card);
-          });
-        }
-    ),
-  );
+      child: DragTarget<CardStack>(
+          builder: (a, b, c) {
+            if ((cards.isEmpty)) {
+              return _emptyStack;
+            } else if(draggable) {
+              return Draggable(
+                child: cards.last.widget,
+                maxSimultaneousDrags: 1,
+                feedback: cards.last.widget,
+                childWhenDragging: cards.length > 1
+                    ? cards[cards.length - 2].widget
+                    : _emptyStack,
+                data: this,
+                onDragCompleted: onDragCompleted,
+              );
+            } else{
+              return cards.last.widget;
+            }
+          },
+          onWillAccept: willAccept,
+          onAccept: onAccept));
 
   get _emptyStack => Container(
       width: PlayingCard.width,

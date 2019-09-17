@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:solitaire_flutter/game_screen.dart';
 import 'package:solitaire_flutter/game_screen_gridcannon.dart';
 
 void main() => runApp(MyApp());
