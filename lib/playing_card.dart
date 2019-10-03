@@ -1,5 +1,6 @@
 import 'dart:core';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 enum CardSuit {
@@ -26,11 +27,29 @@ enum CardType {
   king // 13
 }
 
+const Map<CardType, int> _CardValues = {
+  CardType.joker: 0,
+  CardType.ace: 1,
+  CardType.two: 2,
+  CardType.three: 3,
+  CardType.four: 4,
+  CardType.five: 5,
+  CardType.six: 6,
+  CardType.seven: 7,
+  CardType.eight: 8,
+  CardType.nine: 9,
+  CardType.ten: 10,
+  CardType.jack: 11,
+  CardType.queen: 12,
+  CardType.king: 13
+};
+
+int valueOf(CardType type) => _CardValues[type];
+
 // Simple playing card model
 class PlayingCard {
   static const double height = 60.0;
-  static const aspectRatio = 2/3;
-  static double get width => height * aspectRatio;
+  static const width = 40.0;
 
   CardSuit cardSuit;
   CardType cardType;
@@ -42,8 +61,6 @@ class PlayingCard {
     this.faceUp = false,
   });
 
-  int get value => cardType.index;
-
   Color get cardColor {
     if (cardSuit == CardSuit.hearts || cardSuit == CardSuit.diamonds) {
       return Colors.red;
@@ -51,6 +68,8 @@ class PlayingCard {
       return Colors.black;
     }
   }
+
+  get value => valueOf(cardType);
 
   static List<PlayingCard> getNewDeck() {
     List<PlayingCard> deck = new List<PlayingCard>();
@@ -66,12 +85,12 @@ class PlayingCard {
 
   @override
   String toString() {
-
-    return '$cardType of $cardSuit';
+    return '${describeEnum(cardType)} of ${describeEnum(cardSuit)}';
   }
 
   get widget {
     return Container(
+      margin: EdgeInsets.all(10),
         width: width,
         height: height,
         decoration: BoxDecoration(

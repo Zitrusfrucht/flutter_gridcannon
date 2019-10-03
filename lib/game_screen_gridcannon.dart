@@ -1,9 +1,12 @@
 import 'dart:math';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:solitaire_flutter/playing_card.dart';
+import 'package:solitaire_flutter/settings.dart';
 
 import 'card_stack.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class GameScreenGC extends StatefulWidget {
   @override
@@ -65,6 +68,62 @@ class _GameScreenStateGC extends State<GameScreenGC> {
 
   bool isLastCard(CardStack card) => card.length == 1 && goneCards.isEmpty;
 
+  void errorCheck() {
+    int cardCount = 0;
+    List<PlayingCard> allCards = [];
+    enemyLines.forEach((List<CardStack> stacks) {
+      stacks.forEach((stack) {
+        allCards.addAll(stack);
+        cardCount += stack.length;
+      });
+    });
+
+    playerGrid.values.forEach((CardStack stack) {
+      allCards.addAll(stack);
+      cardCount += stack.length;
+    });
+
+    allCards.addAll(shameCards);
+    allCards.addAll(handCards);
+    allCards.addAll(goneCards);
+
+    cardCount += shameCards.length + handCards.length + goneCards.length;
+
+    assert(allCards.length == cardCount, "allcarss wrong!");
+    assert(cardCount == PlayingCard.getNewDeck().length,
+        "There should be ${PlayingCard.getNewDeck().length} cards but there are $cardCount cards!!\n");
+
+    assert(allCards.length == allCards.toSet().toList().length,
+        "None unique cards!");
+  }
+
+  List<CardStack> validTargets;
+
+  List<CardStack> getValidTargets(CardStack source) {
+    if (validTargets == null) {
+      validTargets = [];
+
+      if (shameCards.willAccept(source)) {
+        validTargets.add(shameCards);
+      }
+
+      playerGrid.values.forEach((CardStack pcs) {
+        if (pcs.willAccept(source)) {
+          validTargets.add(pcs);
+        }
+      });
+
+      enemyLines.forEach((List<CardStack> line) {
+        line.forEach((CardStack ecs) {
+          if (ecs.willAccept(source)) {
+            validTargets.add(ecs);
+          }
+        });
+      });
+    }
+    return validTargets;
+  }
+
   void _initialiseGame() {
     rng = Random();
     List<PlayingCard> deck = PlayingCard.getNewDeck();
@@ -73,8 +132,12 @@ class _GameScreenStateGC extends State<GameScreenGC> {
     goneCards = CardStack(draggable: false);
 
     shameCards = CardStack(
-        willAccept: (CardStack source) =>
-            source.last.value < CardType.jack.index && !(isLastCard(source)),
+        willAccept: (CardStack source) {
+          var willAccept =
+              source.last.value < CardType.jack.index && !(isLastCard(source));
+
+          return willAccept;
+        },
         onAccept: (CardStack source) {
           setState(() {
             shameCards.add(source.last);
@@ -84,6 +147,7 @@ class _GameScreenStateGC extends State<GameScreenGC> {
           setState(() {
             shameCards.removeLast();
           });
+          errorCheck();
         },
         draggable: false);
 
@@ -91,43 +155,47 @@ class _GameScreenStateGC extends State<GameScreenGC> {
       return CardStack(
           draggable: false,
           willAccept: (CardStack source) {
+            bool willaccept;
             int srcVal = source.last.value;
             if (srcVal >= CardType.jack.index) {
-              return false;
+              willaccept = false;
             } else if (isLastCard(source)) {
-              return true;
+              willaccept = true;
             } else {
-              return playerGrid.values[i].isEmpty ||
+              willaccept = playerGrid.values[i].isEmpty ||
                   srcVal >= playerGrid.values[i].last.value ||
                   srcVal == CardType.ace.index ||
                   srcVal == CardType.joker.index;
             }
+
+            return willaccept;
           },
           onAccept: (CardStack source) {
             setState(() {
               int cardVal = source.last.value;
+              var targetStack = playerGrid.values[i];
 
               if (cardVal == CardType.ace.index ||
                   cardVal == CardType.joker.index) {
-                playerGrid.values[i].forEach((c) => c.faceUp = false);
-                goneCards.addAll(playerGrid.values[i]);
-                playerGrid.values[i].clear();
+                targetStack.forEach((c) => c.faceUp = false);
+                goneCards.addAll(targetStack);
+                targetStack.clear();
+              } else if (isLastCard(source)) {
+                var top = targetStack.removeLast();
+                shameCards.add(top);
+                targetStack.shuffle(rng);
+                handCards.addAll(targetStack);
+                targetStack.clear();
               }
+              targetStack.add(source.last);
 
-              playerGrid.values[i].add(source.last);
               hitCheck(i);
-
-              // last card
-              if (isLastCard(source)) {
-                var last = playerGrid.values[i].removeLast();
-                shameCards.add(last);
-                playerGrid.values[i].shuffle(rng);
-                handCards.addAll(playerGrid.values[i]);
-                playerGrid.values[i].clear();
-              }
+              endCheck();
             });
           },
-          onDragCompleted: () {});
+          onDragCompleted: () {
+            errorCheck();
+          });
     });
 
     enemyLines = List.generate(
@@ -137,20 +205,24 @@ class _GameScreenStateGC extends State<GameScreenGC> {
             (int j) => CardStack(
                 draggable: false,
                 willAccept: (CardStack source) {
+                  bool willAccept;
                   if (enemyLines[i][j].isEmpty) {
                     if (source.last.value >= CardType.jack.index) {
                       List<PlayingCard> fitlist = findLargestFit(source.last);
-                      print(fitlist);
+                      print("fitlist is $fitlist");
                       CardStack neighbor = findInsideNeighbor(intToDir(i), j);
-                      return (fitlist.contains(neighbor.last));
+                      willAccept = (fitlist.contains(neighbor.last));
                     } else {
-                      return false;
+                      willAccept = false;
                     }
                   } else {
-                    return enemyLines[i][j].last.faceUp &&
+                    willAccept = enemyLines[i][j].last.faceUp &&
                         source.last.value <= CardType.jack.index &&
-                        source.last.value >= CardType.ace.index;
+                        source.last.value > CardType.ace.index &&
+                        enemyLines[i][j].totalValue + source.last.value <= 20;
                   }
+
+                  return willAccept;
                 },
                 onAccept: (CardStack source) =>
                     {enemyLines[i][j].add(source.last)},
@@ -158,6 +230,7 @@ class _GameScreenStateGC extends State<GameScreenGC> {
                   setState(() {
                     enemyLines[i][j].removeLast();
                   });
+                  errorCheck();
                 })));
 
     // Initial card dealout
@@ -181,12 +254,30 @@ class _GameScreenStateGC extends State<GameScreenGC> {
     handCards = CardStack(
         willAccept: (CardStack src) => false,
         onAccept: (CardStack src) => {},
+        onDragStarted: () {
+          var validTargets = getValidTargets(handCards);
+          setState(() {
+            validTargets.forEach((CardStack target) {
+              target.highlight();
+            });
+          });
+        },
+        onDragEnd: (_) {
+          setState(() {
+            unHighlightAll();
+          });
+        },
         onDragCompleted: () {
           setState(() {
             handCards.removeLast();
             if (handCards.isEmpty) {
               if (goneCards.isEmpty) {
                 print("Game over");
+                _showDialog(
+                    "Oh oh",
+                    "you played all your cards without killing the enemies. You lost",
+                    "Try Again",
+                    _initialiseGame);
               } else {
                 goneCards.forEach((c) => (c.faceUp = true));
                 goneCards.shuffle(rng);
@@ -195,6 +286,7 @@ class _GameScreenStateGC extends State<GameScreenGC> {
               }
             }
           });
+          errorCheck();
         });
 
     handCards.addAll(deck);
@@ -350,7 +442,10 @@ class _GameScreenStateGC extends State<GameScreenGC> {
       case 7:
         return [enemyLines[Direction.down.index][1]];
       case 8:
-        return [enemyLines[Direction.right.index][2]];
+        return [
+          enemyLines[Direction.right.index][2],
+          enemyLines[Direction.down.index][2]
+        ];
       default:
         throw ArgumentError("invalid index, 0-8 allowed");
     }
@@ -386,59 +481,107 @@ class _GameScreenStateGC extends State<GameScreenGC> {
     }
   }
 
+  _launchUrl(String url) async {
+    if (await canLaunch(url)) {
+      await launch(url);
+    } else {
+      throw 'Could not launch $url';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp,
+      DeviceOrientation.portraitDown,
+    ]);
+
     return Scaffold(
+      backgroundColor: Colors.green,
+      appBar: AppBar(
+        title: Text("Grid Cannon"),
+        elevation: 0.0,
         backgroundColor: Colors.green,
-        appBar: AppBar(
-          title: Text("Grid Cannon"),
-          elevation: 0.0,
-          backgroundColor: Colors.green,
-          actions: <Widget>[
-            InkWell(
-              child: Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: Icon(
-                  Icons.refresh,
-                  color: Colors.white,
-                ),
+        actions: <Widget>[
+          Switch(
+            value: Settings().showHighlights,
+            onChanged: (bool enabled) {
+              setState(() {
+                return Settings().showHighlights = enabled;
+              });
+            },
+          ),
+          InkWell(
+            child: Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: Icon(
+                Icons.refresh,
+                color: Colors.white,
               ),
-              splashColor: Colors.white,
-              onTap: () {
-                _initialiseGame();
-              },
-            )
-          ],
-        ),
-        body: Padding(
-          padding: const EdgeInsets.all(8.0),
-          child: Column(
-            children: <Widget>[
-              Container(
-                child: Column(
-                  children: List.generate(5, (int row) {
-                    return Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: List.generate(5, (int col) {
-                        return Padding(
-                            padding: EdgeInsets.all(8),
-                            child: (row > 0 && row < 4 && col > 0 && col < 4)
-                                ? playerGrid
-                                    .getAt(row - 1, col - 1)
-                                    .getWidget(setState)
-                                : enemyLineWidget(row,
-                                    col)); //playingField.enemyLines[row][col].getWidget(setState));
-                      }),
-                    );
-                  }),
-                ),
+            ),
+            splashColor: Colors.white,
+            onTap: () {
+              _initialiseGame();
+            },
+          ),
+          InkWell(
+            child: Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: Icon(
+                Icons.info,
+                color: Colors.white,
               ),
-              handCards.getWidget(setState),
-              shameCards.getWidget(setState),
-              goneCards.getWidget(setState),
+            ),
+            splashColor: Colors.white,
+            onTap: () {
+              _showDialog(
+                  "Gridcannon",
+                  "The game is called Gridcannon and was designed by Tom Francis, more info on his Website",
+                  "Open Website", () {
+                _launchUrl(
+                    "https://www.pentadact.com/2019-08-20-gridcannon-a-single-player-game-with-regular-playing-cards/");
+              });
+            },
+          ),
+        ],
+      ),
+      body: Column(
+        children: <Widget>[
+          Container(
+            child: Column(
+              children: List.generate(5, (int row) {
+                return Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: List.generate(5, (int col) {
+                      return (row > 0 && row < 4 && col > 0 && col < 4)
+                          ? playerGrid
+                              .getAt(row - 1, col - 1)
+                              .getWidget(setState)
+                          : enemyLineWidget(row, col);
+                    }));
+              }),
+            ),
+          ),
+          Padding(
+            padding: EdgeInsets.all(8),
+            child: handCards.getWidget(setState),
+          ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Padding(
+                padding: EdgeInsets.all(8),
+                child: shameCards.getWidget(setState),
+              ),
+              Padding(
+                padding: EdgeInsets.all(8),
+                child: goneCards.getWidget(setState),
+              ),
             ],
           ),
-        ));
+        ],
+      ),
+    );
   }
 
   enemyLineWidget(int row, int col) {
@@ -464,6 +607,57 @@ class _GameScreenStateGC extends State<GameScreenGC> {
         index = row - 1;
       }
       return enemyLines[dir.index][index].getWidget(setState);
+    }
+  }
+
+  void endCheck() {
+    if (enemyLines.every((List<CardStack> line) => line
+        .every((CardStack stack) => stack.isNotEmpty && !stack.last.faceUp))) {
+      int score = 0;
+      shameCards.forEach((card) => score += card.value);
+      _showDialog(
+          "congratulations",
+          "all enemies killed! Your score is $score Points (less is better)",
+          "replay",
+          _initialiseGame);
+      print(
+          "congratulations all enemies killed! Your score is $score Points (less is better)");
+    }
+  }
+
+  void _showDialog(String titleText, String contentText, String buttonText,
+      Function onButton) {
+    showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            title: Text(titleText),
+            content: Text(contentText),
+            actions: <Widget>[
+              FlatButton(
+                child: Text(buttonText),
+                onPressed: onButton,
+              )
+            ],
+          );
+        });
+  }
+
+  void unHighlightAll() {
+    validTargets = null;
+    shameCards.unHighlight();
+
+    playerGrid.values.forEach((CardStack pcs) {
+      pcs.unHighlight();
+    });
+
+    enemyLines.forEach((List<CardStack> line) {
+      line.forEach((CardStack ecs) {
+        ecs.unHighlight();
+      });
+    });
+    if (handCards.isNotEmpty) {
+      handCards.highlight();
     }
   }
 }

@@ -1,21 +1,31 @@
 import 'dart:collection';
 import 'package:flutter/material.dart';
 import 'package:solitaire_flutter/playing_card.dart';
+import 'package:solitaire_flutter/settings.dart';
 
 class CardStack extends ListBase<PlayingCard> {
   List<PlayingCard> cards = [];
 
   bool draggable;
 
+  CardStack(
+      {this.willAccept,
+      this.onAccept,
+      this.onDragCompleted,
+      this.onDragStarted,
+      this.onDragEnd,
+      this.draggable = true,
+      this.isHighlighted = false});
 
-  CardStack({this.willAccept, this.onAccept, this.onDragCompleted, this.draggable= true});
-  bool Function(CardStack) willAccept;
-  void Function(CardStack) onAccept;
-  void Function() onDragCompleted;
+  bool Function(CardStack) willAccept = (_) => false;
+  void Function(CardStack) onAccept = (_) {};
+  void Function() onDragCompleted = () {};
+  void Function() onDragStarted = () {};
+  void Function(DraggableDetails details) onDragEnd = (_) {};
 
-  int get totalValue{
+  int get totalValue {
     int total = 0;
-    cards.forEach((c){
+    cards.forEach((c) {
       total = total + c.cardType.index;
     });
     return total;
@@ -25,26 +35,32 @@ class CardStack extends ListBase<PlayingCard> {
       child: DragTarget<CardStack>(
           builder: (a, b, c) {
             if ((cards.isEmpty)) {
-              return _emptyStack;
-            } else if(draggable) {
+              return makeHighlight(_emptyStack);
+            } else if (draggable) {
               return Draggable(
-                child: cards.last.widget,
+                onDragStarted: this.onDragStarted,
+                onDragEnd: this.onDragEnd,
+                child: makeHighlight(cards.last.widget),
                 maxSimultaneousDrags: 1,
-                feedback: cards.last.widget,
+                feedback: Material(
+                  child: cards.last.widget,
+                  color: Colors.transparent,
+                ),
                 childWhenDragging: cards.length > 1
                     ? cards[cards.length - 2].widget
                     : _emptyStack,
                 data: this,
                 onDragCompleted: onDragCompleted,
               );
-            } else{
-              return cards.last.widget;
+            } else {
+              return makeHighlight(cards.last.widget);
             }
           },
           onWillAccept: willAccept,
           onAccept: onAccept));
 
   get _emptyStack => Container(
+    margin: EdgeInsets.all(10),
       width: PlayingCard.width,
       height: PlayingCard.height,
       decoration: BoxDecoration(
@@ -64,4 +80,70 @@ class CardStack extends ListBase<PlayingCard> {
 
   @override
   void operator []=(int index, PlayingCard value) => cards[index] = value;
+
+  bool isHighlighted;
+  Color highlightColor = Colors.lightGreenAccent;
+
+  void highlight({Color color}) {
+    isHighlighted = true;
+    if (color != null) {
+      highlightColor = color;
+    }
+  }
+
+  void unHighlight() {
+    isHighlighted = false;
+  }
+
+  Widget makeHighlight(Widget child) {
+    if (isHighlighted && Settings().showHighlights) {
+      return Highlight(
+        child: child,
+        color: highlightColor,
+      );
+    } else {
+      return child;
+    }
+  }
+
+  highlightWidget({
+    child,
+    color = Colors.lightGreenAccent,
+    opacity = 0.7,
+  }) {
+    return Stack(
+      children: <Widget>[
+        child,
+        Positioned.fill(
+            child: Container(
+          color: color.withOpacity(opacity),
+        ))
+      ],
+    );
+  }
+}
+
+class Highlight extends StatelessWidget {
+  final Widget child;
+  final Color color;
+  final double opacity;
+
+  Highlight({
+    this.child,
+    this.color = Colors.lightGreenAccent,
+    this.opacity = 0.4,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      children: <Widget>[
+        child,
+        Positioned.fill(
+            child: Container(
+          color: color.withOpacity(opacity),
+        ))
+      ],
+    );
+  }
 }
