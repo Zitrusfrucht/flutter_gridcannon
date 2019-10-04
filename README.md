@@ -6,4 +6,4 @@ Based on the Game by [Tom Francis](https://www.pentadact.com/2019-08-20-gridcann
 
 Started with the FLuter Solitaire Project by [deven98](https://github.com/deven98/FlutterSolitaire)
 
-[Picture](/screenshot.jpg)
+![Picture](/screenshot.jpg)
