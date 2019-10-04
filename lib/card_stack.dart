@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:solitaire_flutter/playing_card.dart';
 import 'package:solitaire_flutter/settings.dart';
 
+import 'highlight.dart';
+
 class CardStack extends ListBase<PlayingCard> {
   List<PlayingCard> cards = [];
 
@@ -123,27 +125,4 @@ class CardStack extends ListBase<PlayingCard> {
   }
 }
 
-class Highlight extends StatelessWidget {
-  final Widget child;
-  final Color color;
-  final double opacity;
 
-  Highlight({
-    this.child,
-    this.color = Colors.lightGreenAccent,
-    this.opacity = 0.4,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Stack(
-      children: <Widget>[
-        child,
-        Positioned.fill(
-            child: Container(
-          color: color.withOpacity(opacity),
-        ))
-      ],
-    );
-  }
-}

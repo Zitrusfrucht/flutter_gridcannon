@@ -88,13 +88,17 @@ class _GameScreenStateGC extends State<GameScreenGC> {
     allCards.addAll(goneCards);
 
     cardCount += shameCards.length + handCards.length + goneCards.length;
+    try{
+      assert(allCards.length == cardCount, "allcarss wrong!");
+      assert(cardCount == PlayingCard.getNewDeck().length,
+      "There should be ${PlayingCard.getNewDeck().length} cards but there are $cardCount cards!!\n");
 
-    assert(allCards.length == cardCount, "allcarss wrong!");
-    assert(cardCount == PlayingCard.getNewDeck().length,
-        "There should be ${PlayingCard.getNewDeck().length} cards but there are $cardCount cards!!\n");
+      assert(allCards.length == allCards.toSet().toList().length,
+      "None unique cards!");
+    }catch(e){
+      _showDialog("error", e.toString(),"close", (){});
+    }
 
-    assert(allCards.length == allCards.toSet().toList().length,
-        "None unique cards!");
   }
 
   List<CardStack> validTargets;
@@ -134,7 +138,7 @@ class _GameScreenStateGC extends State<GameScreenGC> {
     shameCards = CardStack(
         willAccept: (CardStack source) {
           var willAccept =
-              source.last.value < CardType.jack.index && !(isLastCard(source));
+              source.last.value < CardType.jack.index && source.last.value > valueOf(CardType.ace) && !(isLastCard(source));
 
           return willAccept;
         },
@@ -155,20 +159,20 @@ class _GameScreenStateGC extends State<GameScreenGC> {
       return CardStack(
           draggable: false,
           willAccept: (CardStack source) {
-            bool willaccept;
+            bool willAccept;
             int srcVal = source.last.value;
-            if (srcVal >= CardType.jack.index) {
-              willaccept = false;
+            if (srcVal >= valueOf(CardType.jack)) {
+              willAccept = false;
             } else if (isLastCard(source)) {
-              willaccept = true;
+              willAccept = playerGrid.values[i].isNotEmpty;
             } else {
-              willaccept = playerGrid.values[i].isEmpty ||
+              willAccept = playerGrid.values[i].isEmpty ||
                   srcVal >= playerGrid.values[i].last.value ||
                   srcVal == CardType.ace.index ||
                   srcVal == CardType.joker.index;
             }
 
-            return willaccept;
+            return willAccept;
           },
           onAccept: (CardStack source) {
             setState(() {
@@ -219,7 +223,8 @@ class _GameScreenStateGC extends State<GameScreenGC> {
                     willAccept = enemyLines[i][j].last.faceUp &&
                         source.last.value <= CardType.jack.index &&
                         source.last.value > CardType.ace.index &&
-                        enemyLines[i][j].totalValue + source.last.value <= 20;
+                        enemyLines[i][j].totalValue + source.last.value <= 20 &&
+                        source.length > 1;
                   }
 
                   return willAccept;
@@ -294,6 +299,7 @@ class _GameScreenStateGC extends State<GameScreenGC> {
 
     handCards.forEach((card) => card.faceUp = true);
 
+    handCards.highlight();
     setState(() {});
   }
 
@@ -545,7 +551,7 @@ class _GameScreenStateGC extends State<GameScreenGC> {
           ),
         ],
       ),
-      body: Column(
+      body: Wrap(
         children: <Widget>[
           Container(
             child: Column(
@@ -636,7 +642,10 @@ class _GameScreenStateGC extends State<GameScreenGC> {
             actions: <Widget>[
               FlatButton(
                 child: Text(buttonText),
-                onPressed: onButton,
+                onPressed: () {
+                  Navigator.pop(context);
+                  onButton();
+                },
               )
             ],
           );
